@@ -1,0 +1,85 @@
+version: '3'
+volumes:
+  influxdb_data:
+  portainer_data:
+  grafana_data:
+services:
+##
+## influxdb
+##
+  s_influxdb:
+    image: influxdb:1.8
+    container_name: m_influxdb
+    restart: always
+    ports:
+      - 8086:8086
+    volumes:
+      - influxdb_data:/var/lib/influxdb
+##
+## portainer
+##
+  s_portainer:
+    image: portainer/portainer-ce
+    container_name: m_portainer
+    restart: always
+    ports:
+      - 8000:8000
+      - 9000:9000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    env_file: ./proxy_setting.env
+##
+## grafana
+##
+  s_grafana:
+    image: grafana/grafana
+    container_name: m_grafana
+    restart: always
+    ports:
+     - 3000:3000
+    volumes:
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s:/grafana
+    env_file: ./proxy_setting.env
+##
+## nginx
+##
+  s_nginx_proxy:
+    image: nginx
+    container_name: m_nginx_proxy
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/html:/usr/share/nginx/html
+      - ./nginx/conf/default.conf:/etc/nginx/conf.d/default.conf
+    env_file: ./proxy_setting.env
+##
+## telegraf
+##
+  s_telegraf:
+    image: telegraf
+    container_name: m_telegraf
+    restart: always
+    ports:
+      - 8125:8125
+    volumes:
+      - ./telegraf/etc/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    env_file: ./proxy_setting.env
+##
+## mosquitto
+##
+  s_mqtt:
+    image: eclipse-mosquitto
+    container_name: m_mqtt
+    ports:
+      - 1883:1883
+      - 8883:8883
+    volumes:
+      - ./mqtt/data:/mosquitto/data
+      - ./mqtt/log:/mosquitto/logs
+      - ./mqtt/conf:/mosquitto/config
+    restart: always
+    env_file: ./proxy_setting.env
